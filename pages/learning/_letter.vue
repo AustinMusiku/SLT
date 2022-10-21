@@ -13,7 +13,7 @@
           </div>
         </div>
         <div class="cam">
-          <video id="video" class="cam__feed" src="" />
+          <video id="video" class="cam__feed" />
         </div>
       </div>
     </div>
@@ -21,42 +21,18 @@
 </template>
 
 <script setup>
-// import * as handPoseDetection from '@tensorflow-models/hand-pose-detection'
-// // Register WebGL backend.
-// import '@tensorflow/tfjs-backend-webgl'
-
 import { onMounted } from '@nuxtjs/composition-api'
 
 onMounted(() => {
-  // let hands
-  // let detector
   const video = document.getElementById('video')
-  // const model = handPoseDetection.SupportedModels.MediaPipeHands
 
-  // if (navigator.mediaDevices.getUserMedia) {
-  navigator.mediaDevices.getUserMedia({ video: true })
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
     .then((stream) => {
       video.srcObject = stream
+      video.play()
     }).catch((error) => {
       throw (error)
     })
-  // }
-
-  // const detectorConfig = {
-  //   runtime: 'tfjs'
-  // }
-  // handPoseDetection
-  //   .createDetector(model, detectorConfig)
-  //   .then((newDetector) => {
-  //     detector = newDetector
-  //   })
-
-  // setInterval(async () => {
-  //   hands = await detector.estimateHands(video, { flipHorizontal: false })
-  //   if (hands.length > 0) {
-  //     // console.log(hands)
-  //   }
-  // }, 1000)
 })
 
 </script>
