@@ -1,30 +1,78 @@
 <template>
   <div class="wrap">
     <div class="letters">
-      <a href="learning/a" class="heading letter">a</a>
-      <a href="learning/b" class="heading letter">b</a>
-      <a href="learning/c" class="heading letter">c</a>
-      <a href="learning/d" class="heading letter">d</a>
-      <a href="learning/e" class="heading letter">e</a>
-      <a href="learning/f" class="heading letter">f</a>
-      <a href="learning/g" class="heading letter">g</a>
-      <a href="learning/h" class="heading letter">h</a>
-      <a href="learning/i" class="heading letter">i</a>
-      <a href="learning/k" class="heading letter">k</a>
-      <a href="learning/l" class="heading letter">l</a>
-      <a href="learning/m" class="heading letter">m</a>
-      <a href="learning/n" class="heading letter">n</a>
-      <a href="learning/o" class="heading letter">o</a>
-      <a href="learning/p" class="heading letter">p</a>
-      <a href="learning/q" class="heading letter">q</a>
-      <a href="learning/r" class="heading letter">r</a>
-      <a href="learning/s" class="heading letter">s</a>
-      <a href="learning/t" class="heading letter">t</a>
-      <a href="learning/u" class="heading letter">u</a>
-      <a href="learning/v" class="heading letter">v</a>
-      <a href="learning/w" class="heading letter">w</a>
-      <a href="learning/x" class="heading letter">x</a>
-      <a href="learning/y" class="heading letter">y</a>
+      <nuxt-link to="learning/a" class="heading letter">
+        a
+      </nuxt-link>
+      <nuxt-link to="learning/b" class="heading letter">
+        b
+      </nuxt-link>
+      <nuxt-link to="learning/c" class="heading letter">
+        c
+      </nuxt-link>
+      <nuxt-link to="learning/d" class="heading letter">
+        d
+      </nuxt-link>
+      <nuxt-link to="learning/e" class="heading letter">
+        e
+      </nuxt-link>
+      <nuxt-link to="learning/f" class="heading letter">
+        f
+      </nuxt-link>
+      <nuxt-link to="learning/g" class="heading letter">
+        g
+      </nuxt-link>
+      <nuxt-link to="learning/h" class="heading letter">
+        h
+      </nuxt-link>
+      <nuxt-link to="learning/i" class="heading letter">
+        i
+      </nuxt-link>
+      <nuxt-link to="learning/k" class="heading letter">
+        k
+      </nuxt-link>
+      <nuxt-link to="learning/l" class="heading letter">
+        l
+      </nuxt-link>
+      <nuxt-link to="learning/m" class="heading letter">
+        m
+      </nuxt-link>
+      <nuxt-link to="learning/n" class="heading letter">
+        n
+      </nuxt-link>
+      <nuxt-link to="learning/o" class="heading letter">
+        o
+      </nuxt-link>
+      <nuxt-link to="learning/p" class="heading letter">
+        p
+      </nuxt-link>
+      <nuxt-link to="learning/q" class="heading letter">
+        q
+      </nuxt-link>
+      <nuxt-link to="learning/r" class="heading letter">
+        r
+      </nuxt-link>
+      <nuxt-link to="learning/s" class="heading letter">
+        s
+      </nuxt-link>
+      <nuxt-link to="learning/t" class="heading letter">
+        t
+      </nuxt-link>
+      <nuxt-link to="learning/u" class="heading letter">
+        u
+      </nuxt-link>
+      <nuxt-link to="learning/v" class="heading letter">
+        v
+      </nuxt-link>
+      <nuxt-link to="learning/w" class="heading letter">
+        w
+      </nuxt-link>
+      <nuxt-link to="learning/x" class="heading letter">
+        x
+      </nuxt-link>
+      <nuxt-link to="learning/y" class="heading letter">
+        y
+      </nuxt-link>
     </div>
   </div>
 </template>

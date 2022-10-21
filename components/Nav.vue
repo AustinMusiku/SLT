@@ -1,12 +1,12 @@
 <template>
   <nav class="grid">
     <div class="grid__container">
-      <a href="/" class="logo icon">
+      <nuxt-link to="/" class="logo icon">
         <img src="/img/letter_A 1.png" alt="logo">
         <h1 class="subtitle txt--light">
           SLT
         </h1>
-      </a>
+      </nuxt-link>
     </div>
   </nav>
 </template>

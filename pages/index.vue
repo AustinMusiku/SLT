@@ -9,9 +9,9 @@
           <p class="txt--light">
             Learn kenya sign language today with our easy to use interface and interactive model
           </p>
-          <a
+          <nuxt-link
             class="btn"
-            href="/alphabet"
+            to="/alphabet"
           >
             Get Started
             <svg viewBox="0 0 32 32">
@@ -32,15 +32,12 @@
                 />
               </g>
             </svg>
-          </a>
+          </nuxt-link>
         </div>
       </div>
     </div>
   </div>
 </template>
-
-<script setup>
-</script>
 
 <style lang="scss">
 .hero{
