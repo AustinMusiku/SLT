@@ -33,14 +33,14 @@ onMounted(() => {
   const video = document.getElementById('video')
   // const model = handPoseDetection.SupportedModels.MediaPipeHands
 
-  if (navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then((stream) => {
-        video.srcObject = stream
-      }).catch((error) => {
-        throw (error)
-      })
-  }
+  // if (navigator.mediaDevices.getUserMedia) {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then((stream) => {
+      video.srcObject = stream
+    }).catch((error) => {
+      throw (error)
+    })
+  // }
 
   // const detectorConfig = {
   //   runtime: 'tfjs'
