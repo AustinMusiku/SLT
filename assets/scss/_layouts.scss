@@ -1,0 +1,17 @@
+.grid{
+    display: grid;
+    grid-template-columns: 1em repeat(2, 1fr) 1em;
+}
+.grid__container{
+    grid-column: 2/4;
+}
+
+.two-parts{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.section{
+    padding: 5em 0;
+}
+

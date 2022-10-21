@@ -1,0 +1,47 @@
+*{
+    font-family: $ff-body;
+}
+
+.super-heading{
+    font-size: $fs-super;
+    position: relative;
+    line-height: 1;
+    width: fit-content;
+    height: fit-content;
+}
+.heading{
+    font-size: $fs-title;
+    line-height: 1;
+    letter-spacing: 1px;
+    text-transform: capitalize;
+}
+
+.caption{
+    font-size: $fs-small;
+    line-height: 1;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+a,p{
+    font-size: $fs-body;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+a{
+    text-decoration: none;
+
+    &.btn{
+        display: inline-block;
+        margin: .5em 0 .5em;
+        padding: .75em 1em .75em 1.5em;
+        color: $clr-blue;
+        background-color: $clr-yellow;
+        border-radius: 50px;
+    }
+}
+
+.txt--light{ color: $clr-light; }
+.txt--blue{ color: $clr-blue; }
+.txt--yellow{ color: $clr-yellow; }
