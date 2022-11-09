@@ -13,7 +13,7 @@
           </div>
         </div>
         <div class="cam">
-          <video id="video" class="cam__feed" />
+          <video id="video" ref="videoElm" class="cam__feed" autoplay />
         </div>
       </div>
     </div>
@@ -21,20 +21,47 @@
 </template>
 
 <script setup>
-import { onMounted } from '@nuxtjs/composition-api'
+// eslint-disable-next-line no-unused-vars
+import * as tf from '@tensorflow/tfjs-core'
+import '@tensorflow/tfjs-converter'
+import '@tensorflow/tfjs-backend-webgl' // Register WebGL backend.
+import * as handPoseDetection from '@tensorflow-models/handpose'
 
-onMounted(() => {
-  const video = document.getElementById('video')
+import { onBeforeMount, ref } from '@nuxtjs/composition-api'
 
-  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-    .then((stream) => {
-      video.srcObject = stream
-      video.play()
-    }).catch((error) => {
-      throw (error)
-    })
+// const model = handPoseDetection.SupportedModels.MediaPipeHands
+const videoElm = ref(null)
+
+onBeforeMount(async () => {
+  if (navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then((stream) => {
+        videoElm.value.srcObject = stream
+      }).catch((error) => {
+        throw (error)
+      })
+  }
+
+  const detector = await handPoseDetection.load()
+  // eslint-disable-next-line no-console
+  console.log('ready---------------------------------')
+
+  setInterval(async () => {
+    // eslint-disable-next-line prefer-const
+    let hands = await detector.estimateHands(videoElm.value, { flipHorizontal: true })
+    if (hands.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(hands[0])
+    }
+  }, 2000)
 })
 
+</script>
+
+<script>
+export default {
+  name: 'Letter'
+}
 </script>
 
 <style lang="scss">

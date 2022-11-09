@@ -90,6 +90,7 @@
             padding: .5em;
             display: grid;
             place-items: center;
+            line-height: .8;
             color: $clr-light;
             border: 1px solid #ffffff45;
             border-radius: 5px;
