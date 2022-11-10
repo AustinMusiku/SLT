@@ -4,10 +4,10 @@
       <div class="hero">
         <div class="hero__container">
           <h1 class="super-heading txt--light">
-            kenya sign language
+            kenyan sign language
           </h1>
           <p class="txt--light">
-            Learn kenya sign language today with our easy to use interface and interactive model
+            Learn kenyan sign language today with our easy to use interface and interactive model
           </p>
           <nuxt-link
             class="btn"
