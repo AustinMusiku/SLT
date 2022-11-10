@@ -62,6 +62,7 @@ onBeforeMount(async () => {
 onBeforeUnmount(() => {
   // clear hand detection loop
   clearInterval(loopId.value)
+  loopId.value = null
 
   // unmount camera
   const tracks = videoElm.value.srcObject.getTracks()
