@@ -5,11 +5,11 @@
         <div class="demo">
           <div class="demo__txt">
             <h1 class="super-heading txt--light">
-              {{ $route.params.letter }}
+              {{ route.params.letter }}
             </h1>
           </div>
           <div class="demo__img">
-            <img class="demo-img" src="/img/letterA.png" alt="">
+            <img class="demo-img" :src="`/img/Sign_language_${ route.params.letter }.svg`" :alt="route.params.letter">
           </div>
         </div>
         <div class="cam">
@@ -27,7 +27,9 @@ import '@tensorflow/tfjs-converter'
 import '@tensorflow/tfjs-backend-webgl' // Register WebGL backend.
 import * as handPoseDetection from '@tensorflow-models/handpose'
 
-import { onBeforeMount, ref } from '@nuxtjs/composition-api'
+import { onBeforeMount, ref, useRoute } from '@nuxtjs/composition-api'
+
+const route = useRoute()
 
 // const model = handPoseDetection.SupportedModels.MediaPipeHands
 const videoElm = ref(null)
@@ -93,6 +95,10 @@ export default {
         font-family: $ff-heading;
         text-transform: uppercase;
       }
+    }
+
+    .demo__img{
+      fill: #fff
     }
   }
 
