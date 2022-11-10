@@ -27,12 +27,13 @@ import '@tensorflow/tfjs-converter'
 import '@tensorflow/tfjs-backend-webgl' // Register WebGL backend.
 import * as handPoseDetection from '@tensorflow-models/handpose'
 
-import { onBeforeMount, ref, useRoute } from '@nuxtjs/composition-api'
+import { onBeforeMount, onBeforeUnmount, ref, useRoute } from '@nuxtjs/composition-api'
 
 const route = useRoute()
 
 // const model = handPoseDetection.SupportedModels.MediaPipeHands
 const videoElm = ref(null)
+const loopId = ref(null)
 
 onBeforeMount(async () => {
   if (navigator.mediaDevices.getUserMedia) {
@@ -48,7 +49,7 @@ onBeforeMount(async () => {
   // eslint-disable-next-line no-console
   console.log('ready---------------------------------')
 
-  setInterval(async () => {
+  loopId.value = setInterval(async () => {
     // eslint-disable-next-line prefer-const
     let hands = await detector.estimateHands(videoElm.value, { flipHorizontal: true })
     if (hands.length > 0) {
@@ -56,6 +57,20 @@ onBeforeMount(async () => {
       console.log(hands[0])
     }
   }, 2000)
+})
+
+onBeforeUnmount(() => {
+  // clear hand detection loop
+  clearInterval(loopId.value)
+
+  // unmount camera
+  const tracks = videoElm.value.srcObject.getTracks()
+
+  for (let i = 0; i < tracks.length; i++) {
+    const track = tracks[i]
+    track.stop()
+  }
+  videoElm.value.srcObject = null
 })
 
 </script>
