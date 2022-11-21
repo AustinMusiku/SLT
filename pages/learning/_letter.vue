@@ -14,6 +14,7 @@
         </div>
         <div class="cam">
           <video id="video" ref="videoElm" class="cam__feed" autoplay />
+          <canvas id="canvas" ref="canvasElm" class="cam__feed" />
         </div>
       </div>
     </div>
@@ -22,46 +23,60 @@
 
 <script setup>
 // eslint-disable-next-line no-unused-vars
-import * as tf from '@tensorflow/tfjs-core'
 import '@tensorflow/tfjs-converter'
-import '@tensorflow/tfjs-backend-webgl' // Register WebGL backend.
-import * as handPoseDetection from '@tensorflow-models/handpose'
-
-import { onBeforeMount, onBeforeUnmount, ref, useRoute } from '@nuxtjs/composition-api'
+import '@tensorflow/tfjs-backend-webgl'
+import { onBeforeUnmount, onMounted, ref, useRoute } from '@nuxtjs/composition-api'
 
 const route = useRoute()
 
-// const model = handPoseDetection.SupportedModels.MediaPipeHands
 const videoElm = ref(null)
+const canvasElm = ref(null)
 const loopId = ref(null)
 
-onBeforeMount(async () => {
+onMounted(() => {
+  const ctx = canvasElm.value.getContext('2d')
+  const camDivWidth = document.querySelector('.cam').offsetWidth
+  const camDivHeight = document.querySelector('.cam').offsetHeight
+  canvasElm.value.width = camDivWidth
+  canvasElm.value.height = camDivHeight
+  const canvasAspectRatio = camDivWidth / camDivHeight
+  let camWidth, camHeight
+
   if (navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: true, audio: false })
       .then((stream) => {
         videoElm.value.srcObject = stream
+        camWidth = stream.getTracks()[0].getSettings().width
+        camHeight = stream.getTracks()[0].getSettings().height
       }).catch((error) => {
         throw (error)
       })
   }
 
-  const detector = await handPoseDetection.load()
-  // eslint-disable-next-line no-console
-  console.log('ready---------------------------------')
+  const loop = () => {
+    // mirror video on canvas
+    ctx.scale(-1, 1)
+    ctx.drawImage(
+      videoElm.value, // source video
+      (camWidth - camHeight * canvasAspectRatio) / 2, // source x
+      0, // source y
+      camHeight * canvasAspectRatio, // source width
+      camHeight, // source height
+      0, // destination x
+      0, // destination y
+      camDivWidth, // destination width
+      camDivHeight // destination height
+    )
 
-  loopId.value = setInterval(async () => {
-    // eslint-disable-next-line prefer-const
-    let hands = await detector.estimateHands(videoElm.value, { flipHorizontal: true })
-    if (hands.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(hands[0])
-    }
-  }, 2000)
+    loopId.value = requestAnimationFrame(loop)
+  }
+
+  loop()
 })
 
 onBeforeUnmount(() => {
   // clear hand detection loop
-  clearInterval(loopId.value)
+  cancelAnimationFrame(loopId.value)
   loopId.value = null
 
   // unmount camera
@@ -72,6 +87,10 @@ onBeforeUnmount(() => {
     track.stop()
   }
   videoElm.value.srcObject = null
+
+  // clear canvas
+  const ctx = canvasElm.value.getContext('2d')
+  ctx.clearRect(0, 0, canvasElm.value.width, canvasElm.value.height)
 })
 
 </script>
@@ -119,9 +138,16 @@ export default {
   }
 
   .cam{
+    position: relative;
     background-color: #000000;
+    overflow: hidden;
+
+    #video{
+      display: none;
+    }
 
     .cam__feed{
+      position: relative;
       width: 100%;
       height: 100%;
     }
