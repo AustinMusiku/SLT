@@ -25,6 +25,7 @@
 // eslint-disable-next-line no-unused-vars
 import '@tensorflow/tfjs-converter'
 import '@tensorflow/tfjs-backend-webgl'
+import { load } from '@tensorflow-models/handpose'
 import { onBeforeUnmount, onMounted, ref, useRoute } from '@nuxtjs/composition-api'
 
 const route = useRoute()
@@ -33,14 +34,16 @@ const videoElm = ref(null)
 const canvasElm = ref(null)
 const loopId = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
   const ctx = canvasElm.value.getContext('2d')
+  const boundingBoxCtx = document.createElement('canvas').getContext('2d')
   const camDivWidth = document.querySelector('.cam').offsetWidth
   const camDivHeight = document.querySelector('.cam').offsetHeight
   canvasElm.value.width = camDivWidth
   canvasElm.value.height = camDivHeight
   const canvasAspectRatio = camDivWidth / camDivHeight
   let camWidth, camHeight
+  const detector = await load()
 
   if (navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: true, audio: false })
@@ -68,10 +71,47 @@ onMounted(() => {
       camDivHeight // destination height
     )
 
+    detection()
+
     loopId.value = requestAnimationFrame(loop)
   }
 
-  loop()
+  const detection = async () => {
+    // run hand detection
+    const hands = await detector.estimateHands(canvasElm.value)
+
+    if (hands.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(hands[0])
+      // draw hand within bounding box to canvas
+      let [topLeftX, topLeftY] = hands[0].boundingBox.topLeft
+      let [bottomRightX, bottomRightY] = hands[0].boundingBox.bottomRight
+
+      const boundingBoxCtxWidth = bottomRightX - topLeftX
+      const boundingBoxCtxHeight = bottomRightY - topLeftY
+
+      // expand bounding box by 20 pixels in all directions IF there is room
+      // oder follows: left -> top -> right -> bottom
+      if (topLeftX - 20 > 0) { topLeftX -= 20 }
+      if (topLeftY - 20 > 0) { topLeftY -= 20 }
+      if (bottomRightX + 20 > camDivWidth) { bottomRightX += 20 }
+      if (bottomRightY + 20 > camDivHeight) { bottomRightY += 20 }
+
+      // draw bounding box on a canvas element
+      boundingBoxCtx.drawImage(videoElm.value,
+        topLeftX - 20 > 0 ? topLeftX - 20 : topLeftX,
+        topLeftY - 20 > 0 ? topLeftY - 20 : topLeftY,
+        boundingBoxCtxWidth,
+        boundingBoxCtxHeight,
+        0, 0, camDivWidth, camDivHeight
+      )
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('no hands')
+    }
+  }
+
+  loop(detector)
 })
 
 onBeforeUnmount(() => {
