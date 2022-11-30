@@ -28,7 +28,8 @@ defineProps({
     transition: .25s;
     font-family: $ff-heading;
 
-    &:hover{
+    &:hover,
+    &:focus{
         color: $clr-blue;
         background-color: $clr-yellow;
     }
@@ -45,7 +46,8 @@ defineProps({
         color: $clr-light;
     }
 
-    &:hover::after{
+    &:hover::after,
+    &:focus::after{
         color: $clr-blue;
     }
 }
