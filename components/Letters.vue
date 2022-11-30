@@ -19,11 +19,7 @@ const letters = ref(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm',
         gap: .5em;
         grid-template-columns: repeat(6, 1fr);
         grid-template-rows: repeat(4, 1fr);
-    }
-    .caption{
-        margin: 2em 0 0;
-        width: 100%;
-        text-align: center;
+        counter-reset: letter;
     }
 }
 </style>
