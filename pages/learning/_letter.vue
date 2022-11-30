@@ -15,6 +15,7 @@
         <div class="cam">
           <video id="video" ref="videoElm" class="cam__feed" autoplay />
           <canvas id="canvas" ref="canvasElm" class="cam__feed" />
+          <canvas id="canvass" ref="canvasElmm" class="cam__feed" />
         </div>
       </div>
     </div>
@@ -22,96 +23,152 @@
 </template>
 
 <script setup>
-// eslint-disable-next-line no-unused-vars
-import '@tensorflow/tfjs-converter'
-import '@tensorflow/tfjs-backend-webgl'
 import { load } from '@tensorflow-models/handpose'
+import * as tmImage from '@teachablemachine/image'
 import { onBeforeUnmount, onMounted, ref, useRoute } from '@nuxtjs/composition-api'
 
 const route = useRoute()
 
 const videoElm = ref(null)
 const canvasElm = ref(null)
+const canvasElmm = ref(null)
 const loopId = ref(null)
+const model = ref(null)
 
-onMounted(async () => {
-  const ctx = canvasElm.value.getContext('2d')
-  const boundingBoxCtx = document.createElement('canvas').getContext('2d')
-  const camDivWidth = document.querySelector('.cam').offsetWidth
-  const camDivHeight = document.querySelector('.cam').offsetHeight
-  canvasElm.value.width = camDivWidth
-  canvasElm.value.height = camDivHeight
-  const canvasAspectRatio = camDivWidth / camDivHeight
-  let camWidth, camHeight
-  const detector = await load()
+const MODEL_URL = '/model/model.json'
+const METADATA_URL = '/model/metadata.json'
 
-  if (navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-      .then((stream) => {
-        videoElm.value.srcObject = stream
-        camWidth = stream.getTracks()[0].getSettings().width
-        camHeight = stream.getTracks()[0].getSettings().height
-      }).catch((error) => {
-        throw (error)
-      })
-  }
+tmImage.load(MODEL_URL, METADATA_URL)
+  .then((value) => {
+    model.value = value
+  })
 
-  const loop = () => {
-    // mirror video on canvas
-    ctx.scale(-1, 1)
-    ctx.drawImage(
-      videoElm.value, // source video
-      (camWidth - camHeight * canvasAspectRatio) / 2, // source x
-      0, // source y
-      camHeight * canvasAspectRatio, // source width
-      camHeight, // source height
-      0, // destination x
-      0, // destination y
-      camDivWidth, // destination width
-      camDivHeight // destination height
-    )
+onMounted(() => {
+  window.addEventListener('load', async () => {
+    const ctx = canvasElm.value.getContext('2d')
+    const boundingBoxCtx = canvasElmm.value.getContext('2d')
 
-    detection()
+    const camDivWidth = document.querySelector('.cam').offsetWidth
+    const camDivHeight = document.querySelector('.cam').offsetHeight
+    const canvasAspectRatio = camDivWidth / camDivHeight
 
-    loopId.value = requestAnimationFrame(loop)
-  }
+    canvasElm.value.width = camDivWidth
+    canvasElm.value.height = camDivHeight
 
-  const detection = async () => {
-    // run hand detection
-    const hands = await detector.estimateHands(canvasElm.value)
+    canvasElmm.value.width = 448
+    canvasElmm.value.height = 448
 
-    if (hands.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(hands[0])
-      // draw hand within bounding box to canvas
-      let [topLeftX, topLeftY] = hands[0].boundingBox.topLeft
-      let [bottomRightX, bottomRightY] = hands[0].boundingBox.bottomRight
+    let camWidth, camHeight
+    const detector = await load()
 
-      const boundingBoxCtxWidth = bottomRightX - topLeftX
-      const boundingBoxCtxHeight = bottomRightY - topLeftY
-
-      // expand bounding box by 20 pixels in all directions IF there is room
-      // oder follows: left -> top -> right -> bottom
-      if (topLeftX - 20 > 0) { topLeftX -= 20 }
-      if (topLeftY - 20 > 0) { topLeftY -= 20 }
-      if (bottomRightX + 20 > camDivWidth) { bottomRightX += 20 }
-      if (bottomRightY + 20 > camDivHeight) { bottomRightY += 20 }
-
-      // draw bounding box on a canvas element
-      boundingBoxCtx.drawImage(videoElm.value,
-        topLeftX - 20 > 0 ? topLeftX - 20 : topLeftX,
-        topLeftY - 20 > 0 ? topLeftY - 20 : topLeftY,
-        boundingBoxCtxWidth,
-        boundingBoxCtxHeight,
-        0, 0, camDivWidth, camDivHeight
-      )
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('no hands')
+    // setup camera
+    if (navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then((stream) => {
+          videoElm.value.srcObject = stream
+          camWidth = stream.getTracks()[0].getSettings().width
+          camHeight = stream.getTracks()[0].getSettings().height
+        }).catch((error) => {
+          throw (error)
+        })
     }
-  }
 
-  loop(detector)
+    const loop = () => {
+      // mirror video on canvas
+      ctx.drawImage(
+        videoElm.value, // source video
+        (camWidth - camHeight * canvasAspectRatio) / 2, // source x
+        0, // source y
+        camHeight * canvasAspectRatio, // source width
+        camHeight, // source height
+        0, // destination x
+        0, // destination y
+        camDivWidth, // destination width
+        camDivHeight // destination height
+      )
+
+      detection()
+
+      loopId.value = requestAnimationFrame(loop)
+    }
+
+    const detection = async () => {
+      // run hand detection
+      const hands = await detector.estimateHands(canvasElm.value)
+
+      if (hands.length > 0) {
+        // draw hand within bounding box to canvas
+        const [topLeftX, topLeftY] = hands[0].boundingBox.topLeft
+        const [bottomRightX, bottomRightY] = hands[0].boundingBox.bottomRight
+
+        const boundingBoxWidth = bottomRightX - topLeftX
+        const boundingBoxHeight = bottomRightY - topLeftY
+
+        // draw rectangle around hand
+        ctx.strokeStyle = '#e8c30d'
+        ctx.lineWidth = 3
+        ctx.strokeRect(
+          topLeftX + 0, // x
+          topLeftY + 0, // y
+          bottomRightX - topLeftX - 0, // width
+          bottomRightY - topLeftY - 0 // height
+        )
+
+        // expand bounding box by 20 pixels in all directions IF there is room
+        // oder follows: left -> top -> right -> bottom
+        // if (topLeftX - 5 > 0) { topLeftX -= 5 }
+        // if (topLeftY - 5 > 0) { topLeftY -= 5 }
+        // if (bottomRightX + 5 > camDivWidth) { bottomRightX += 5 }
+        // if (bottomRightY + 5 > camDivHeight) { bottomRightY += 5 }
+
+        // let IMGSIZE, destX, destY
+
+        // // taller
+        // if (boundingBoxCtxHeight > boundingBoxCtxWidth) {
+        //   IMGSIZE = boundingBoxCtxHeight
+        //   destX = (IMGSIZE - boundingBoxCtxWidth) / 2
+        //   destY = 0
+        // // eslint-disable-next-line brace-style
+        // }
+        // // wider
+        // else if (boundingBoxCtxWidth > boundingBoxCtxHeight) {
+        //   IMGSIZE = boundingBoxCtxWidth
+        //   destX = 0
+        //   destY = (IMGSIZE - boundingBoxCtxHeight) / 2
+        // // eslint-disable-next-line brace-style
+        // }
+        // // equal
+        // else {
+        //   IMGSIZE = boundingBoxCtxHeight
+        //   destX = destY = 0
+        // }
+
+        // draw bounding box on a canvas element
+
+        boundingBoxCtx.clearRect(0, 0, boundingBoxWidth, boundingBoxHeight)
+        boundingBoxCtx.drawImage(canvasElm.value,
+          topLeftX, // source x
+          topLeftY, // source y
+          boundingBoxWidth, // source width
+          boundingBoxHeight, // source height
+          0, // destination x
+          0, // destination  y
+          448, // destination width
+          448 // destination height
+        )
+
+        const predictions = await model.value.predict(boundingBoxCtx.canvas)
+        const sortedPrediction = predictions.sort((x, y) => parseFloat(y.probability) - parseFloat(x.probability))
+        // eslint-disable-next-line no-console
+        console.log(sortedPrediction[0].className, sortedPrediction[0].probability.toFixed(4))
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('no hands')
+      }
+    }
+
+    loop()
+  })
 })
 
 onBeforeUnmount(() => {
@@ -178,12 +235,20 @@ export default {
   }
 
   .cam{
-    position: relative;
+    // position: relative;
     background-color: #000000;
     overflow: hidden;
 
     #video{
       display: none;
+    }
+    #canvas{
+      // display: none;
+    }
+    #canvass{
+      display: none;
+      width: calc(448px * (768 / 768));
+      height: 448px;
     }
 
     .cam__feed{
