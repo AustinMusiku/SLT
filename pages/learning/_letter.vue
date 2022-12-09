@@ -9,13 +9,14 @@
             </h1>
           </div>
           <div class="demo__img">
-            <img class="demo-img" :src="`/img/Sign_language_${ route.params.letter }.svg`" :alt="route.params.letter">
+            <img class="demo-img" :src="`/img/Sign_language_${route.params.letter}.svg`" :alt="route.params.letter">
           </div>
         </div>
+
         <div class="cam">
           <video id="video" ref="videoElm" class="cam__feed" autoplay />
-          <canvas id="canvas" ref="canvasElm" class="cam__feed" />
-          <canvas id="canvass" ref="canvasElmm" class="cam__feed" />
+          <canvas id="video-canvas" ref="videoCanvas" class="cam__feed" />
+          <canvas id="bounding-box-canvas" ref="boundingBoxCanvas" class="cam__feed" />
         </div>
       </div>
     </div>
@@ -23,17 +24,26 @@
 </template>
 
 <script setup>
+
 import { load } from '@tensorflow-models/handpose'
 import * as tmImage from '@teachablemachine/image'
-import { onBeforeUnmount, onMounted, ref, useRoute } from '@nuxtjs/composition-api'
+import { onBeforeUnmount, onMounted, reactive, ref, useRoute } from '@nuxtjs/composition-api'
 
 const route = useRoute()
 
 const videoElm = ref(null)
-const canvasElm = ref(null)
-const canvasElmm = ref(null)
+const videoCanvas = ref(null)
+const boundingBoxCanvas = ref(null)
 const loopId = ref(null)
 const model = ref(null)
+
+const predictedHand = reactive({
+  letter: '',
+  probability: 0
+})
+
+const DETECTION_SIZE =
+  224
 
 const MODEL_URL = '/model/model.json'
 const METADATA_URL = '/model/metadata.json'
@@ -44,131 +54,101 @@ tmImage.load(MODEL_URL, METADATA_URL)
   })
 
 onMounted(() => {
-  window.addEventListener('load', async () => {
-    const ctx = canvasElm.value.getContext('2d')
-    const boundingBoxCtx = canvasElmm.value.getContext('2d')
+  const videoCanvasCtx = videoCanvas.value.getContext('2d')
+  const boundingBoxCtx = boundingBoxCanvas.value.getContext('2d')
 
-    const camDivWidth = document.querySelector('.cam').offsetWidth
-    const camDivHeight = document.querySelector('.cam').offsetHeight
-    const canvasAspectRatio = camDivWidth / camDivHeight
+  const camDivWidth = document.querySelector('.cam').offsetWidth
+  const camDivHeight = document.querySelector('.cam').offsetHeight
+  const canvasAspectRatio = camDivWidth / camDivHeight
 
-    canvasElm.value.width = camDivWidth
-    canvasElm.value.height = camDivHeight
+  videoCanvas.value.width = camDivWidth
+  videoCanvas.value.height = camDivHeight
 
-    canvasElmm.value.width = 448
-    canvasElmm.value.height = 448
+  boundingBoxCanvas.value.width = DETECTION_SIZE
+  boundingBoxCanvas.value.height = DETECTION_SIZE
 
-    let camWidth, camHeight
-    const detector = await load()
+  let camWidth, camHeight, detector
 
-    // setup camera
-    if (navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-        .then((stream) => {
-          videoElm.value.srcObject = stream
-          camWidth = stream.getTracks()[0].getSettings().width
-          camHeight = stream.getTracks()[0].getSettings().height
-        }).catch((error) => {
-          throw (error)
-        })
+  const loop = async () => {
+    // mirror video on canvas
+    videoCanvasCtx.drawImage(
+      videoElm.value, // source video
+      (camWidth - camHeight * canvasAspectRatio) / 2, 0, camHeight * canvasAspectRatio, camHeight,
+      0, 0, camDivWidth, camDivHeight
+    )
+
+    const hand = await detectHand()
+
+    if (hand) {
+      const prediction = await predictHand()
+      predictedHand.letter = prediction.letter
+      predictedHand.probability = prediction.probability
+      // eslint-disable-next-line no-console
+      console.log(prediction)
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('oops!')
     }
 
-    const loop = () => {
-      // mirror video on canvas
-      ctx.drawImage(
-        videoElm.value, // source video
-        (camWidth - camHeight * canvasAspectRatio) / 2, // source x
-        0, // source y
-        camHeight * canvasAspectRatio, // source width
-        camHeight, // source height
-        0, // destination x
-        0, // destination y
-        camDivWidth, // destination width
-        camDivHeight // destination height
-      )
+    loopId.value = requestAnimationFrame(loop)
+  }
 
-      detection()
+  const detectHand = async () => {
+    const [hand] = await detector.estimateHands(videoCanvas.value)
 
-      loopId.value = requestAnimationFrame(loop)
+    if (!hand) { return null }
+
+    // draw hand within bounding box to canvas
+    const [topLeftX, topLeftY] = hand.boundingBox.topLeft
+    const [bottomRightX, bottomRightY] = hand.boundingBox.bottomRight
+
+    const boundingBoxWidth = bottomRightX - topLeftX
+    const boundingBoxHeight = bottomRightY - topLeftY
+
+    // draw rectangle around bounding box
+    videoCanvasCtx.strokeStyle = '#e8c30d'
+    videoCanvasCtx.lineWidth = 3
+    videoCanvasCtx.strokeRect(topLeftX, topLeftY, boundingBoxWidth, boundingBoxHeight)
+
+    // draw bounding box area on a canvas element
+    boundingBoxCtx.clearRect(0, 0, boundingBoxWidth, boundingBoxHeight)
+    boundingBoxCtx.drawImage(
+      videoCanvas.value,
+      topLeftX, topLeftY, boundingBoxWidth, boundingBoxHeight,
+      0, 0, DETECTION_SIZE, DETECTION_SIZE
+    )
+
+    return hand
+  }
+
+  const predictHand = async () => {
+    const predictions = await model.value.predict(boundingBoxCtx.canvas, { flipHorizontal: true })
+    const topPrediction = predictions
+      .sort((x, y) => parseFloat(y.probability) - parseFloat(x.probability))[0]
+
+    return {
+      letter: topPrediction.className,
+      prediction: topPrediction.probability.toFixed(4)
+    }
+  }
+
+  const init = async () => {
+    detector = await load()
+
+    // set up camera
+    const hasCamera = navigator.mediaDevices.getUserMedia
+    if (hasCamera) {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      videoElm.value.srcObject = stream
+      camWidth = stream.getTracks()[0].getSettings().width
+      camHeight = stream.getTracks()[0].getSettings().height
     }
 
-    const detection = async () => {
-      // run hand detection
-      const hands = await detector.estimateHands(canvasElm.value)
+    await loop()
+  }
 
-      if (hands.length > 0) {
-        // draw hand within bounding box to canvas
-        const [topLeftX, topLeftY] = hands[0].boundingBox.topLeft
-        const [bottomRightX, bottomRightY] = hands[0].boundingBox.bottomRight
-
-        const boundingBoxWidth = bottomRightX - topLeftX
-        const boundingBoxHeight = bottomRightY - topLeftY
-
-        // draw rectangle around hand
-        ctx.strokeStyle = '#e8c30d'
-        ctx.lineWidth = 3
-        ctx.strokeRect(
-          topLeftX + 0, // x
-          topLeftY + 0, // y
-          bottomRightX - topLeftX - 0, // width
-          bottomRightY - topLeftY - 0 // height
-        )
-
-        // expand bounding box by 20 pixels in all directions IF there is room
-        // oder follows: left -> top -> right -> bottom
-        // if (topLeftX - 5 > 0) { topLeftX -= 5 }
-        // if (topLeftY - 5 > 0) { topLeftY -= 5 }
-        // if (bottomRightX + 5 > camDivWidth) { bottomRightX += 5 }
-        // if (bottomRightY + 5 > camDivHeight) { bottomRightY += 5 }
-
-        // let IMGSIZE, destX, destY
-
-        // // taller
-        // if (boundingBoxCtxHeight > boundingBoxCtxWidth) {
-        //   IMGSIZE = boundingBoxCtxHeight
-        //   destX = (IMGSIZE - boundingBoxCtxWidth) / 2
-        //   destY = 0
-        // // eslint-disable-next-line brace-style
-        // }
-        // // wider
-        // else if (boundingBoxCtxWidth > boundingBoxCtxHeight) {
-        //   IMGSIZE = boundingBoxCtxWidth
-        //   destX = 0
-        //   destY = (IMGSIZE - boundingBoxCtxHeight) / 2
-        // // eslint-disable-next-line brace-style
-        // }
-        // // equal
-        // else {
-        //   IMGSIZE = boundingBoxCtxHeight
-        //   destX = destY = 0
-        // }
-
-        // draw bounding box on a canvas element
-
-        boundingBoxCtx.clearRect(0, 0, boundingBoxWidth, boundingBoxHeight)
-        boundingBoxCtx.drawImage(canvasElm.value,
-          topLeftX, // source x
-          topLeftY, // source y
-          boundingBoxWidth, // source width
-          boundingBoxHeight, // source height
-          0, // destination x
-          0, // destination  y
-          448, // destination width
-          448 // destination height
-        )
-
-        const predictions = await model.value.predict(boundingBoxCtx.canvas)
-        const sortedPrediction = predictions.sort((x, y) => parseFloat(y.probability) - parseFloat(x.probability))
-        // eslint-disable-next-line no-console
-        console.log(sortedPrediction[0].className, sortedPrediction[0].probability.toFixed(4))
-      } else {
-        // eslint-disable-next-line no-console
-        console.log('no hands')
-      }
-    }
-
-    loop()
-  })
+  // window.addEventListener('load', init)
+  init()
 })
 
 onBeforeUnmount(() => {
@@ -178,16 +158,10 @@ onBeforeUnmount(() => {
 
   // unmount camera
   const tracks = videoElm.value.srcObject.getTracks()
-
-  for (let i = 0; i < tracks.length; i++) {
-    const track = tracks[i]
+  for (const track of tracks) {
     track.stop()
   }
   videoElm.value.srcObject = null
-
-  // clear canvas
-  const ctx = canvasElm.value.getContext('2d')
-  ctx.clearRect(0, 0, canvasElm.value.width, canvasElm.value.height)
 })
 
 </script>
@@ -199,59 +173,56 @@ export default {
 </script>
 
 <style lang="scss">
-.two-parts{
+.two-parts {
   height: 100vh;
   width: 100vw;
 
   .demo,
-  .cam{
+  .cam {
     height: 100%;
   }
 
-  .demo{
+  .demo {
     padding-top: 10em;
     display: flex;
     flex-direction: column;
     gap: 4em;
 
     .demo__txt,
-    .demo__img{
+    .demo__img {
       margin: 0 auto 0;
       width: fit-content;
     }
 
-    .demo__txt{
+    .demo__txt {
       text-align: center;
 
-      h1{
+      h1 {
         font-family: $ff-heading;
         text-transform: uppercase;
       }
     }
 
-    .demo__img{
+    .demo__img {
       fill: #fff
     }
   }
 
-  .cam{
-    // position: relative;
+  .cam {
     background-color: #000000;
     overflow: hidden;
 
-    #video{
+    #video {
       display: none;
-    }
-    #canvas{
-      // display: none;
-    }
-    #canvass{
-      display: none;
-      width: calc(448px * (768 / 768));
-      height: 448px;
     }
 
-    .cam__feed{
+    #bounding-box-canvas {
+      display: none;
+      width: 224px;
+      height: 224px;
+    }
+
+    .cam__feed {
       position: relative;
       width: 100%;
       height: 100%;
