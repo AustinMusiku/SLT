@@ -7,7 +7,7 @@
 			>
 				<img
 					src="/img/letter_A 1.png"
-					alt="logo"
+					alt="logo icon"
 				/>
 				<h1 class="subtitle txt--light">SLT</h1>
 			</nuxt-link>

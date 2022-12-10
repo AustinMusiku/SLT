@@ -5,12 +5,12 @@
 				<div class="content__header">
 					<h1 class="heading txt--light">Eager to learn?</h1>
 					<p class="txt--light">
-						Pick the letter you would like to learn and get
-						going!<br />
+						Pick the letter you would like to learn and get going!
+						<br />
 						<span class="txt--yellow">
 							*The letters "J" and "Z" are not included as their
-							gestures are motion based</span
-						>
+							gestures are motion based
+						</span>
 					</p>
 				</div>
 				<div class="content__body">

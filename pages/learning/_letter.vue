@@ -17,22 +17,24 @@
 					</div>
 				</div>
 
-				<video
-					id="video"
-					ref="videoElm"
-					class="cam__feed"
-					autoplay
-				/>
-				<canvas
-					id="video-canvas"
-					ref="videoCanvas"
-					class="cam__feed"
-				/>
-				<canvas
-					id="bounding-box-canvas"
-					ref="boundingBoxCanvas"
-					class="cam__feed"
-				/>
+				<div class="cam">
+					<video
+						id="video"
+						ref="videoElm"
+						class="cam__feed"
+						autoplay
+					/>
+					<canvas
+						id="video-canvas"
+						ref="videoCanvas"
+						class="cam__feed"
+					/>
+					<canvas
+						id="bounding-box-canvas"
+						ref="boundingBoxCanvas"
+						class="cam__feed"
+					/>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -42,7 +44,7 @@
 import { load } from '@tensorflow-models/handpose'
 import * as tmImage from '@teachablemachine/image'
 import {
-	onBeforeUnmount,
+	// onBeforeUnmount,
 	onMounted,
 	reactive,
 	ref,
@@ -176,15 +178,15 @@ onMounted(() => {
 		detector = await load()
 
 		// set up camera
-		const hasCamera = navigator.mediaDevices.getUserMedia
+		const hasCamera = navigator.mediaDevices.getUserMedia({ video: true })
 		if (hasCamera) {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				video: true,
 				audio: false
 			})
 			videoElm.value.srcObject = stream
-			camWidth = stream.getTracks()[0].getSettings().width
-			camHeight = stream.getTracks()[0].getSettings().height
+			camWidth = await stream.getTracks()[0].getSettings().width
+			camHeight = await stream.getTracks()[0].getSettings().height
 		}
 
 		await loop()
@@ -194,18 +196,18 @@ onMounted(() => {
 	init()
 })
 
-onBeforeUnmount(() => {
-	// clear hand detection loop
-	cancelAnimationFrame(loopId.value)
-	loopId.value = null
+// onBeforeUnmount(() => {
+// 	// clear hand detection loop
+// 	cancelAnimationFrame(loopId.value)
+// 	loopId.value = null
 
-	// unmount camera
-	const tracks = videoElm.value.srcObject.getTracks()
-	for (const track of tracks) {
-		track.stop()
-	}
-	videoElm.value.srcObject = null
-})
+// 	// unmount camera
+// 	const tracks = videoElm.value.srcObject.getTracks()
+// 	for (const track of tracks) {
+// 		track.stop()
+// 	}
+// 	videoElm.value.srcObject = null
+// })
 </script>
 
 <script>

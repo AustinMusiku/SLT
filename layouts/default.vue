@@ -13,6 +13,6 @@ import Nav from '../components/Nav.vue'
 .wrapper {
 	height: 100vh;
 	background-color: $clr-blue;
-	// background: linear-gradient(-55deg, $clr-yellow -50%, $clr-blue 50%);
+	// background: linear-gradient(-55deg, $clr-yellow -50%, $clr-blue 150%);
 }
 </style>
