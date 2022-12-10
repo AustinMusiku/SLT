@@ -7,8 +7,8 @@
 					<p class="txt--light">
 						Pick the letter you would like to learn and get
 						going!<br />
-						<span class="txt--yellow"
-							>*The letters "J" and "Z" are not included as their
+						<span class="txt--yellow">
+							*The letters "J" and "Z" are not included as their
 							gestures are motion based</span
 						>
 					</p>
