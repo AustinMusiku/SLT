@@ -18,6 +18,10 @@
 				</div>
 
 				<div class="cam">
+					<Popup
+						:show-popup="showPopup"
+						@closePopup="closePopup"
+					/>
 					<video
 						id="video"
 						ref="videoElm"
@@ -44,7 +48,7 @@
 import { load } from '@tensorflow-models/handpose'
 import * as tmImage from '@teachablemachine/image'
 import {
-	// onBeforeUnmount,
+	onBeforeUnmount,
 	onMounted,
 	reactive,
 	ref,
@@ -58,6 +62,7 @@ const videoCanvas = ref(null)
 const boundingBoxCanvas = ref(null)
 const loopId = ref(null)
 const model = ref(null)
+const showPopup = ref(false)
 
 const predictedHand = reactive({
 	letter: '',
@@ -72,6 +77,10 @@ const METADATA_URL = '/model/metadata.json'
 tmImage.load(MODEL_URL, METADATA_URL).then((value) => {
 	model.value = value
 })
+
+function closePopup() {
+	showPopup.value = false
+}
 
 onMounted(() => {
 	const videoCanvasCtx = videoCanvas.value.getContext('2d')
@@ -106,14 +115,13 @@ onMounted(() => {
 		const hand = await detectHand()
 
 		if (hand) {
-			const prediction = await predictHand()
-			predictedHand.letter = prediction.letter
-			predictedHand.probability = prediction.probability
-			// eslint-disable-next-line no-console
-			console.log(prediction)
-		} else {
-			// eslint-disable-next-line no-console
-			console.log('oops!')
+			const { letter, probability } = await predictHand()
+			predictedHand.letter = letter.toLowerCase()
+			predictedHand.probability = probability
+
+			if (predictedHand.letter === route.value.params.letter) {
+				showPopup.value = true
+			}
 		}
 
 		loopId.value = requestAnimationFrame(loop)
@@ -161,16 +169,14 @@ onMounted(() => {
 	}
 
 	const predictHand = async () => {
-		const predictions = await model.value.predict(boundingBoxCtx.canvas, {
-			flipHorizontal: true
-		})
+		const predictions = await model.value.predict(boundingBoxCtx.canvas)
 		const topPrediction = predictions.sort(
 			(x, y) => parseFloat(y.probability) - parseFloat(x.probability)
 		)[0]
 
 		return {
 			letter: topPrediction.className,
-			prediction: topPrediction.probability.toFixed(4)
+			probability: topPrediction.probability.toFixed(4)
 		}
 	}
 
@@ -192,22 +198,21 @@ onMounted(() => {
 		await loop()
 	}
 
-	// window.addEventListener('load', init)
-	init()
+	window.addEventListener('load', init)
 })
 
-// onBeforeUnmount(() => {
-// 	// clear hand detection loop
-// 	cancelAnimationFrame(loopId.value)
-// 	loopId.value = null
+onBeforeUnmount(() => {
+	// clear hand detection loop
+	cancelAnimationFrame(loopId.value)
+	loopId.value = null
 
-// 	// unmount camera
-// 	const tracks = videoElm.value.srcObject.getTracks()
-// 	for (const track of tracks) {
-// 		track.stop()
-// 	}
-// 	videoElm.value.srcObject = null
-// })
+	// unmount camera
+	const tracks = videoElm.value.srcObject.getTracks()
+	for (const track of tracks) {
+		track.stop()
+	}
+	videoElm.value.srcObject = null
+})
 </script>
 
 <script>
@@ -253,6 +258,7 @@ export default {
 	}
 
 	.cam {
+		position: relative;
 		background-color: #000000;
 		overflow: hidden;
 
