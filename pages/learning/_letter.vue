@@ -18,6 +18,10 @@
 				</div>
 
 				<div class="cam">
+					<Popup
+						:show-popup="showPopup"
+						@closePopup="closePopup"
+					/>
 					<video
 						id="video"
 						ref="videoElm"
@@ -41,10 +45,12 @@
 </template>
 
 <script setup>
+import '@tensorflow/tfjs-converter'
+import '@tensorflow/tfjs-backend-webgl'
 import { load } from '@tensorflow-models/handpose'
 import * as tmImage from '@teachablemachine/image'
 import {
-	// onBeforeUnmount,
+	onBeforeUnmount,
 	onMounted,
 	reactive,
 	ref,
@@ -58,6 +64,7 @@ const videoCanvas = ref(null)
 const boundingBoxCanvas = ref(null)
 const loopId = ref(null)
 const model = ref(null)
+const showPopup = ref(false)
 
 const predictedHand = reactive({
 	letter: '',
@@ -73,12 +80,18 @@ tmImage.load(MODEL_URL, METADATA_URL).then((value) => {
 	model.value = value
 })
 
+function closePopup() {
+	showPopup.value = false
+}
+
 onMounted(() => {
+	// eslint-disable-next-line no-console
+	console.log('mounted')
 	const videoCanvasCtx = videoCanvas.value.getContext('2d')
 	const boundingBoxCtx = boundingBoxCanvas.value.getContext('2d')
 
-	const camDivWidth = document.querySelector('.cam').offsetWidth
-	const camDivHeight = document.querySelector('.cam').offsetHeight
+	const { clientWidth: camDivWidth, clientHeight: camDivHeight } =
+		document.querySelector('.cam')
 	const canvasAspectRatio = camDivWidth / camDivHeight
 
 	videoCanvas.value.width = camDivWidth
@@ -92,7 +105,7 @@ onMounted(() => {
 	const loop = async () => {
 		// mirror video on canvas
 		videoCanvasCtx.drawImage(
-			videoElm.value, // source video
+			videoElm.value,
 			(camWidth - camHeight * canvasAspectRatio) / 2,
 			0,
 			camHeight * canvasAspectRatio,
@@ -106,14 +119,13 @@ onMounted(() => {
 		const hand = await detectHand()
 
 		if (hand) {
-			const prediction = await predictHand()
-			predictedHand.letter = prediction.letter
-			predictedHand.probability = prediction.probability
-			// eslint-disable-next-line no-console
-			console.log(prediction)
-		} else {
-			// eslint-disable-next-line no-console
-			console.log('oops!')
+			const { letter, probability } = await predictHand()
+			predictedHand.letter = letter.toLowerCase()
+			predictedHand.probability = probability
+
+			if (predictedHand.letter === route.value.params.letter) {
+				showPopup.value = true
+			}
 		}
 
 		loopId.value = requestAnimationFrame(loop)
@@ -136,6 +148,9 @@ onMounted(() => {
 		// draw rectangle around bounding box
 		videoCanvasCtx.strokeStyle = '#e8c30d'
 		videoCanvasCtx.lineWidth = 3
+		// videoCanvasCtx.font = 'bold 48px serif'
+		// write text
+		// videoCanvasCtx.fillText('found!!!', 100, 100)
 		videoCanvasCtx.strokeRect(
 			topLeftX,
 			topLeftY,
@@ -161,32 +176,34 @@ onMounted(() => {
 	}
 
 	const predictHand = async () => {
-		const predictions = await model.value.predict(boundingBoxCtx.canvas, {
-			flipHorizontal: true
-		})
+		// eslint-disable-next-line no-console
+		// console.log('predicting hand')
+		const predictions = await model.value.predict(boundingBoxCtx.canvas)
 		const topPrediction = predictions.sort(
 			(x, y) => parseFloat(y.probability) - parseFloat(x.probability)
 		)[0]
 
 		return {
 			letter: topPrediction.className,
-			prediction: topPrediction.probability.toFixed(4)
+			probability: topPrediction.probability.toFixed(4)
 		}
 	}
 
 	const init = async () => {
+		// eslint-disable-next-line no-console
+		console.log('init')
 		detector = await load()
 
 		// set up camera
 		const hasCamera = navigator.mediaDevices.getUserMedia({ video: true })
 		if (hasCamera) {
 			const stream = await navigator.mediaDevices.getUserMedia({
-				video: true,
-				audio: false
+				video: true
 			})
 			videoElm.value.srcObject = stream
-			camWidth = await stream.getTracks()[0].getSettings().width
-			camHeight = await stream.getTracks()[0].getSettings().height
+			const { width, height } = await stream.getTracks()[0].getSettings()
+			camWidth = width
+			camHeight = height
 		}
 
 		await loop()
@@ -196,18 +213,18 @@ onMounted(() => {
 	init()
 })
 
-// onBeforeUnmount(() => {
-// 	// clear hand detection loop
-// 	cancelAnimationFrame(loopId.value)
-// 	loopId.value = null
+onBeforeUnmount(() => {
+	// clear hand detection loop
+	cancelAnimationFrame(loopId.value)
+	loopId.value = null
 
-// 	// unmount camera
-// 	const tracks = videoElm.value.srcObject.getTracks()
-// 	for (const track of tracks) {
-// 		track.stop()
-// 	}
-// 	videoElm.value.srcObject = null
-// })
+	// unmount camera
+	const tracks = videoElm.value.srcObject.getTracks()
+	for (const track of tracks) {
+		track.stop()
+	}
+	videoElm.value.srcObject = null
+})
 </script>
 
 <script>
@@ -253,6 +270,7 @@ export default {
 	}
 
 	.cam {
+		position: relative;
 		background-color: #000000;
 		overflow: hidden;
 
