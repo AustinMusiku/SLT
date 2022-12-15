@@ -45,6 +45,8 @@
 </template>
 
 <script setup>
+import '@tensorflow/tfjs-converter'
+import '@tensorflow/tfjs-backend-webgl'
 import { load } from '@tensorflow-models/handpose'
 import * as tmImage from '@teachablemachine/image'
 import {
@@ -83,11 +85,13 @@ function closePopup() {
 }
 
 onMounted(() => {
+	// eslint-disable-next-line no-console
+	console.log('mounted')
 	const videoCanvasCtx = videoCanvas.value.getContext('2d')
 	const boundingBoxCtx = boundingBoxCanvas.value.getContext('2d')
 
-	const camDivWidth = document.querySelector('.cam').offsetWidth
-	const camDivHeight = document.querySelector('.cam').offsetHeight
+	const { clientWidth: camDivWidth, clientHeight: camDivHeight } =
+		document.querySelector('.cam')
 	const canvasAspectRatio = camDivWidth / camDivHeight
 
 	videoCanvas.value.width = camDivWidth
@@ -101,7 +105,7 @@ onMounted(() => {
 	const loop = async () => {
 		// mirror video on canvas
 		videoCanvasCtx.drawImage(
-			videoElm.value, // source video
+			videoElm.value,
 			(camWidth - camHeight * canvasAspectRatio) / 2,
 			0,
 			camHeight * canvasAspectRatio,
@@ -144,6 +148,9 @@ onMounted(() => {
 		// draw rectangle around bounding box
 		videoCanvasCtx.strokeStyle = '#e8c30d'
 		videoCanvasCtx.lineWidth = 3
+		// videoCanvasCtx.font = 'bold 48px serif'
+		// write text
+		// videoCanvasCtx.fillText('found!!!', 100, 100)
 		videoCanvasCtx.strokeRect(
 			topLeftX,
 			topLeftY,
@@ -169,6 +176,8 @@ onMounted(() => {
 	}
 
 	const predictHand = async () => {
+		// eslint-disable-next-line no-console
+		// console.log('predicting hand')
 		const predictions = await model.value.predict(boundingBoxCtx.canvas)
 		const topPrediction = predictions.sort(
 			(x, y) => parseFloat(y.probability) - parseFloat(x.probability)
@@ -181,24 +190,27 @@ onMounted(() => {
 	}
 
 	const init = async () => {
+		// eslint-disable-next-line no-console
+		console.log('init')
 		detector = await load()
 
 		// set up camera
 		const hasCamera = navigator.mediaDevices.getUserMedia({ video: true })
 		if (hasCamera) {
 			const stream = await navigator.mediaDevices.getUserMedia({
-				video: true,
-				audio: false
+				video: true
 			})
 			videoElm.value.srcObject = stream
-			camWidth = await stream.getTracks()[0].getSettings().width
-			camHeight = await stream.getTracks()[0].getSettings().height
+			const { width, height } = await stream.getTracks()[0].getSettings()
+			camWidth = width
+			camHeight = height
 		}
 
 		await loop()
 	}
 
-	window.addEventListener('load', init)
+	// window.addEventListener('load', init)
+	init()
 })
 
 onBeforeUnmount(() => {
