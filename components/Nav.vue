@@ -18,7 +18,7 @@
 <style lang="scss">
 nav {
 	position: fixed;
-	padding: 1em 0;
+	padding: 2em 1em;
 	left: 0;
 	top: 0;
 	width: 100%;
@@ -27,7 +27,7 @@ nav {
 	.logo {
 		display: flex;
 		flex-direction: row;
-		gap: 0.25em;
+		gap: 0.5em;
 		align-items: center;
 	}
 }

@@ -7,23 +7,31 @@
 		></Loading>
 		<div class="grid__container">
 			<div class="two-parts">
+				<nuxt-link
+					class="backbtn"
+					to="/alphabet"
+				>
+					back
+				</nuxt-link>
 				<div class="demo">
-					<div class="demo__txt">
-						<h1 class="super-heading txt--light">
-							{{ route.params.letter }}
-						</h1>
-					</div>
-					<div class="demo__img">
-						<img
-							class="demo-img"
-							:src="`/img/Sign_language_${route.params.letter}.svg`"
-							:alt="route.params.letter"
-						/>
-						<img
-							class="test-img"
-							src="/img/test.jpg"
-							alt="test image"
-						/>
+					<div class="demo__container">
+						<div class="demo__txt">
+							<h1 class="super-heading txt--light">
+								{{ route.params.letter }}
+							</h1>
+						</div>
+						<div class="demo__img">
+							<img
+								class="demo-img"
+								:src="`/img/Sign_language_${route.params.letter}.svg`"
+								:alt="route.params.letter"
+							/>
+							<img
+								class="test-img"
+								src="/img/test.jpg"
+								alt="test image"
+							/>
+						</div>
 					</div>
 				</div>
 
@@ -267,8 +275,17 @@ export default {
 
 <style lang="scss">
 .two-parts {
+	position: relative;
 	height: 100vh;
 	width: 100vw;
+
+	.backbtn {
+		position: absolute;
+		top: 2.5em;
+		left: 45%;
+		color: $clr-light;
+		z-index: 10;
+	}
 
 	.demo,
 	.cam {
@@ -276,35 +293,39 @@ export default {
 	}
 
 	.demo {
-		padding-top: 10em;
-		display: flex;
-		flex-direction: column;
-		gap: 4em;
+		display: grid;
+		place-items: center;
 
-		.demo__txt,
-		.demo__img {
-			margin: 0 auto 0;
-			width: fit-content;
-		}
+		.demo__container {
+			padding-top: 0em;
+			display: flex;
+			flex-direction: column;
+			gap: 4em;
 
-		.demo__txt {
-			text-align: center;
-
-			h1 {
-				font-family: $ff-heading;
-				text-transform: uppercase;
+			.demo__txt,
+			.demo__img {
+				margin: 0 auto 0;
+				width: fit-content;
 			}
-		}
 
-		.demo__img {
-			fill: #fff;
+			.demo__txt {
+				text-align: center;
 
-			.test-img {
-				display: none;
+				h1 {
+					font-family: $ff-heading;
+					text-transform: uppercase;
+				}
+			}
+
+			.demo__img {
+				fill: #fff;
+
+				.test-img {
+					display: none;
+				}
 			}
 		}
 	}
-
 	.cam {
 		position: relative;
 		background-color: #000000;
