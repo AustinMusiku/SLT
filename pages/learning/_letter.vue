@@ -1,5 +1,10 @@
 <template>
 	<div class="grid">
+		<Loading
+			:is-loading="isLoading"
+			:loading-header="loadingHeader"
+			:loading-text="loadingText"
+		></Loading>
 		<div class="grid__container">
 			<div class="two-parts">
 				<div class="demo">
@@ -13,6 +18,11 @@
 							class="demo-img"
 							:src="`/img/Sign_language_${route.params.letter}.svg`"
 							:alt="route.params.letter"
+						/>
+						<img
+							class="test-img"
+							src="/img/test.jpg"
+							alt="test image"
 						/>
 					</div>
 				</div>
@@ -65,6 +75,9 @@ const boundingBoxCanvas = ref(null)
 const loopId = ref(null)
 const model = ref(null)
 const showPopup = ref(false)
+const isLoading = ref(true)
+const loadingHeader = ref('please wait')
+const loadingText = ref('loading assets...')
 
 const predictedHand = reactive({
 	letter: '',
@@ -85,8 +98,6 @@ function closePopup() {
 }
 
 onMounted(() => {
-	// eslint-disable-next-line no-console
-	console.log('mounted')
 	const videoCanvasCtx = videoCanvas.value.getContext('2d')
 	const boundingBoxCtx = boundingBoxCanvas.value.getContext('2d')
 
@@ -116,10 +127,10 @@ onMounted(() => {
 			camDivHeight
 		)
 
-		const hand = await detectHand()
+		const hand = await detectHand(false)
 
 		if (hand) {
-			const { letter, probability } = await predictHand()
+			const { letter, probability } = await predictHand(false)
 			predictedHand.letter = letter.toLowerCase()
 			predictedHand.probability = probability
 
@@ -131,11 +142,18 @@ onMounted(() => {
 		loopId.value = requestAnimationFrame(loop)
 	}
 
-	const detectHand = async () => {
-		const [hand] = await detector.estimateHands(videoCanvas.value)
+	const detectHand = async (isTest) => {
+		const srcElement = isTest
+			? document.querySelector('.test-img')
+			: videoCanvas.value
 
+		const [hand] = await detector.estimateHands(srcElement)
 		if (!hand) {
 			return null
+		}
+
+		if (isTest) {
+			return hand || null
 		}
 
 		// draw hand within bounding box to canvas
@@ -175,10 +193,12 @@ onMounted(() => {
 		return hand
 	}
 
-	const predictHand = async () => {
-		// eslint-disable-next-line no-console
-		// console.log('predicting hand')
-		const predictions = await model.value.predict(boundingBoxCtx.canvas)
+	const predictHand = async (isTest) => {
+		const srcElement = isTest
+			? document.querySelector('.test-img')
+			: boundingBoxCtx.canvas
+
+		const predictions = await model.value.predict(srcElement)
 		const topPrediction = predictions.sort(
 			(x, y) => parseFloat(y.probability) - parseFloat(x.probability)
 		)[0]
@@ -190,11 +210,15 @@ onMounted(() => {
 	}
 
 	const init = async () => {
-		// eslint-disable-next-line no-console
-		console.log('init')
 		detector = await load()
+		if (detector) {
+			// warm up model
+			await detectHand(true)
+			loadingHeader.value = 'Almost there'
+			loadingText.value = 'Warming up models...'
+			await predictHand(true)
+		}
 
-		// set up camera
 		const hasCamera = navigator.mediaDevices.getUserMedia({ video: true })
 		if (hasCamera) {
 			const stream = await navigator.mediaDevices.getUserMedia({
@@ -205,11 +229,14 @@ onMounted(() => {
 			camWidth = width
 			camHeight = height
 		}
+		isLoading.value = false
 
 		await loop()
 	}
 
-	// window.addEventListener('load', init)
+	window.addEventListener('load', () => {
+		loadingText.value = 'Loading models...'
+	})
 	init()
 })
 
@@ -224,6 +251,11 @@ onBeforeUnmount(() => {
 		track.stop()
 	}
 	videoElm.value.srcObject = null
+
+	// remove event listener
+	window.removeEventListener('load', () => {
+		loadingText.value = 'Loading models...'
+	})
 })
 </script>
 
@@ -266,6 +298,10 @@ export default {
 
 		.demo__img {
 			fill: #fff;
+
+			.test-img {
+				display: none;
+			}
 		}
 	}
 
